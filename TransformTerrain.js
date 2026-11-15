@@ -28,6 +28,10 @@ class TransformTerrain extends DelayedAction_1.default {
      * What finishing does: the tile the action was performed on gets a new terrain of the type the action's rule
      *  registry converts it to, through `Tile.setTerrain` (so the tile's `TerrainChanged` rules run). With no conversion
      *  for the terrain by then, nothing changes.
+     *
+     * The square's features are registered against the old `Terrain` instance: the game's `TerrainChanged` rules move
+     *  them (base-terrain-feature's `replaceFeatures`), as for every other terrain change, so a game using this action
+     *  must register one.
      */
     static complete(action) {
         const tile = action.from(), Result = (0, conversion_1.conversionOf)(action.ruleRegistry(), tile.terrain(), TransformTerrain.kind);

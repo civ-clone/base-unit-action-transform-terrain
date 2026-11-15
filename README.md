@@ -22,6 +22,13 @@ rule says it becomes.
 - `COMPLETE` (`base-unit-action-transform-terrain:complete`): the handler a save records for work in progress,
   registered with `registerDelayedAction` when the module is loaded, as every delayed action is.
 
+**Features.** A terrain feature (a special, a river) is registered against its `Terrain` instance, and this action
+replaces the instance. It doesn't move features itself: like every terrain change (`ClearForest` and the others), it
+leaves that to the game's `TerrainChanged` rules. **A game using this action must register one** that moves the
+square's features off the old terrain, such as base-terrain-feature's `replaceFeatures` or `carryFeatures` (civ2-world
+registers `civ2-world:terrain-changed/features`, Civ1's is in civ1-world). Without one, the old terrain's features stay
+in the registry pointing at a terrain no tile holds.
+
 The result is looked up when the work finishes rather than when it starts, so nothing chosen at the start has to be
 saved: after a load the action is rebuilt from the unit alone.
 

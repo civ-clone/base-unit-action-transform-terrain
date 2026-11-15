@@ -9,6 +9,12 @@ import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
 import Terrain from '@civ-clone/core-terrain/Terrain';
 import TerrainChanged from '@civ-clone/core-world/Rules/TerrainChanged';
 import TerrainConversion from '../Rules/TerrainConversion';
+import TerrainFeature from '@civ-clone/core-terrain-feature/TerrainFeature';
+import TerrainFeatureRegistry from '@civ-clone/core-terrain-feature/TerrainFeatureRegistry';
+import {
+  carryFeatures,
+  replaceFeatures,
+} from '@civ-clone/base-terrain-feature/lib/replaceFeatures';
 import Tile from '@civ-clone/core-world/Tile';
 import TransformingTerrain from '../Rules/TransformingTerrain';
 import Turn from '@civ-clone/core-turn-based-game/Turn';
@@ -24,6 +30,8 @@ class Hills extends Terrain {}
 class Plains extends Terrain {}
 class Ocean extends Terrain {}
 class Engineers extends Unit {}
+class River extends TerrainFeature {}
+class Special extends TerrainFeature {}
 class Settlers extends Unit {}
 
 // Rows of Civ2's transform column (survey-terrain §1, RULES.TXT @TERRAIN): Grassland → Hills, Hills → Plains. Ocean has
@@ -219,6 +227,70 @@ describe('TransformTerrain', (): void => {
 
       expect(tile.terrain()).to.equal(from);
       expect(changed).to.deep.equal([]);
+    });
+
+    // A feature belongs to its `Terrain` instance, so the game's `TerrainChanged` rules move a square's features onto
+    //  the new one (base-terrain-feature's `replaceFeatures`; civ2-world registers `civ2-world:terrain-changed/features`).
+    describe("with the game's `TerrainChanged` feature rule registered", (): void => {
+      const withFeatures = (
+        rule: (
+          registry: TerrainFeatureRegistry
+        ) => (tile: Tile, from: Terrain, to: Terrain) => void
+      ) => {
+        const set = setUp(),
+          terrainFeatureRegistry = new TerrainFeatureRegistry(),
+          from = set.tile.terrain();
+
+        terrainFeatureRegistry.register(new River(from), new Special(from));
+        set.ruleRegistry.register(
+          new TerrainChanged(new Effect(rule(terrainFeatureRegistry)))
+        );
+
+        TransformTerrain.complete(set.action);
+
+        return { ...set, from, terrainFeatureRegistry };
+      };
+
+      it('carries the features onto the new terrain, leaving none on the old one', (): void => {
+        const { from, terrainFeatureRegistry, tile } =
+          withFeatures(carryFeatures);
+
+        expect(terrainFeatureRegistry.getByTerrain(from)).to.deep.equal([]);
+        expect(
+          terrainFeatureRegistry
+            .getByTerrain(tile.terrain())
+            .map((feature: TerrainFeature) => feature.constructor)
+        ).to.deep.equal([River, Special]);
+        expect(
+          terrainFeatureRegistry
+            .entries()
+            .every(
+              (feature: TerrainFeature): boolean =>
+                feature.terrain() === tile.terrain()
+            )
+        ).to.true;
+      });
+
+      it('drops the features the new terrain cannot hold from the registry', (): void => {
+        const { from, terrainFeatureRegistry, tile } = withFeatures(
+          (registry: TerrainFeatureRegistry) =>
+            replaceFeatures(registry, (features, to) =>
+              features
+                .filter((feature) => feature instanceof River)
+                .map((feature) => feature.clone(to))
+            )
+        );
+
+        expect(terrainFeatureRegistry.getByTerrain(from)).to.deep.equal([]);
+        expect(
+          terrainFeatureRegistry
+            .entries()
+            .map((feature: TerrainFeature) => [
+              feature.constructor,
+              feature.terrain() === tile.terrain(),
+            ])
+        ).to.deep.equal([[River, true]]);
+      });
     });
   });
 });
