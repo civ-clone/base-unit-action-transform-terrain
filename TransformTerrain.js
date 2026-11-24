@@ -50,7 +50,9 @@ TransformTerrain.kind = 'transform';
 (0, registerDelayedAction_1.default)({
     BusyRule: TransformingTerrain_1.default,
     handler: exports.COMPLETE,
-    action: (unit) => new TransformTerrain(unit.tile(), unit.tile(), unit),
+    // Built from the game the unit is loaded into, so finishing after a load writes where that game looks
+    //  (civ-clone/web-renderer#248).
+    action: (unit, context) => new TransformTerrain(unit.tile(), unit.tile(), unit, context.rules, context.turn, context.pendingEffects),
     complete: (unit, pendingEffect, action) => TransformTerrain.complete(action),
 });
 exports.default = TransformTerrain;
