@@ -1,3 +1,4 @@
+import { BusyContext } from '@civ-clone/core-unit/BusyRegistry';
 import DelayedAction from '@civ-clone/core-unit/DelayedAction';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
@@ -61,7 +62,17 @@ export class TransformTerrain extends DelayedAction {
 registerDelayedAction({
   BusyRule: TransformingTerrain,
   handler: COMPLETE,
-  action: (unit: Unit) => new TransformTerrain(unit.tile(), unit.tile(), unit),
+  // Built from the game the unit is loaded into, so finishing after a load writes where that game looks
+  //  (civ-clone/web-renderer#248).
+  action: (unit: Unit, context: BusyContext) =>
+    new TransformTerrain(
+      unit.tile(),
+      unit.tile(),
+      unit,
+      context.rules,
+      context.turn,
+      context.pendingEffects
+    ),
   complete: (unit, pendingEffect, action) => TransformTerrain.complete(action),
 });
 
