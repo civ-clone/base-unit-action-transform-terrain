@@ -1,6 +1,6 @@
 {
   "name": "@civ-clone/base-unit-action-transform-terrain",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The TransformTerrain unit action: a delayed action that changes the terrain of the unit's own tile to what a TerrainConversion lookup rule says it becomes, with criteria for offering it.",
   "repository": "git@github.com:civ-clone/base-unit-action-transform-terrain.git",
   "keywords": [
